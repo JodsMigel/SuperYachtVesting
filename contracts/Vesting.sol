@@ -16,9 +16,16 @@
 // 
 pragma solidity ^0.8.4;
 
-import "./Token.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SuperYachtCoinVesting is SuperYachtCoin {
+
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+    function mint(address _to, uint _amount) external;
+}
+
+contract SuperYachtCoinVesting is Ownable {
 
   // -------------------------------------------------------------------------------------------------------
   // ------------------------------- VESTING PARAMETERS
@@ -30,6 +37,8 @@ contract SuperYachtCoinVesting is SuperYachtCoin {
 
     mapping(uint => Vesting) public vesting;
 
+    IERC20 public token;
+
     // @notice                              provide full information of exact vesting 
     struct Vesting {
         address owner;                      //The only owner can call vesting claim function
@@ -40,7 +49,9 @@ contract SuperYachtCoinVesting is SuperYachtCoin {
         uint tokenToUnclockPerMonth;        //Amount of token can be uncloked each month
     }           
 
-    constructor() SuperYachtCoin() {}
+    constructor(IERC20 _token) {
+        token = _token;
+    }
 
     // @notice                             only contract deployer can call this method and only once
     function createVesting(
@@ -64,10 +75,10 @@ contract SuperYachtCoinVesting is SuperYachtCoin {
         vesting[5] = Vesting(_liquidityWallet, 0, 12, block.timestamp + ONE_MONTH, 135_000_000 ether, 11_250_000 ether);
         vesting[6] = Vesting(_treasuryWallet, 0, 48, block.timestamp + ONE_MONTH, 193_800_000 ether, 4_037_500 ether);
         vesting[7] = Vesting(_stakingRewardWallet, 0, 48, block.timestamp + ONE_MONTH, 300_000_000 ether, 6_250_000 ether);
-        mint(_teamPrivateSaleWallet, 7_000_000 ether);
-        mint(_NFTHoldersWallet, 11_000_000 ether);
-        mint(_liquidityWallet, 15_000_000 ether);
-        mint(_treasuryWallet, 34_200_000 ether);
+        token.mint(_teamPrivateSaleWallet, 7_000_000 ether);
+        token.mint(_NFTHoldersWallet, 11_000_000 ether);
+        token.mint(_liquidityWallet, 15_000_000 ether);
+        token.mint(_treasuryWallet, 34_200_000 ether);
     }
 
     modifier checkLock(uint _index) {
@@ -91,12 +102,12 @@ contract SuperYachtCoinVesting is SuperYachtCoin {
     function claim(uint256 _index) public checkLock(_index) {
         if(vesting[_index].claimCounter + 1 < vesting[_index].totalClaimNum) {
             uint toMint = vesting[_index].tokenToUnclockPerMonth;
-            mint(msg.sender, toMint);
+            token.mint(msg.sender, toMint);
             vesting[_index].tokensRemaining -= toMint;
             vesting[_index].nextUnlockDate += ONE_MONTH;
             vesting[_index].claimCounter++;
         } else {
-            mint(msg.sender, vesting[_index].tokensRemaining);
+            token.mint(msg.sender, vesting[_index].tokensRemaining);
             vesting[_index].tokensRemaining = 0;
         }
     }
