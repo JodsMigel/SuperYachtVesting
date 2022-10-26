@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SuperYachtCoin is  ERC20, ERC20Burnable, Pausable, Ownable  {
 
-    constructor() ERC20("Super Yacht Coin", "SYC") {}
+    constructor() ERC20("Super Yacht Coin", "SYCC") {}
 
     bool public vestingAddressLocked;
 
