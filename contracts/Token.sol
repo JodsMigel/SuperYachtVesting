@@ -24,12 +24,12 @@ contract SuperYachtCoin is  ERC20, ERC20Burnable, Pausable, Ownable  {
 
     // @dev                                 only vesting contract can call this method
     function mint(address _to, uint _amount) public {
+        require(msg.sender == vestingAddress, "Only vesting contract can call this method");
         _mint(_to, _amount);
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal whenNotPaused override
     {
-        require(msg.sender == vestingAddress, "Only vesting contract can call this method");
         super._beforeTokenTransfer(from, to, amount);
     }
     
