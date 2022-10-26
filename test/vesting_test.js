@@ -13,13 +13,18 @@ describe("Vesting", function () {
     let treasury
     let staking
     let vesting
-    
+    let token
+
     beforeEach(async function(){
         [owner, team, teamPrivate, advisors, marketing, nftHolders, luquidity, treasury, staking, vesting ] = await ethers.getSigners()
+        const TOKEN = await ethers.getContractFactory("SuperYachtCoin", owner)
+        token = await TOKEN.deploy()
+        await token.deployed()
         const VESTING = await ethers.getContractFactory("SuperYachtCoinVesting", owner)
-        vesting = await VESTING.deploy()
+        vesting = await VESTING.deploy(token.address)
         await vesting.deployed()
-        await create_vesting();
+        await token.addVesingAddress(vesting.address);
+        await create_vesting(); 
     })
 
     async function wait_time (amount) {
@@ -55,13 +60,16 @@ describe("Vesting", function () {
     const premint_Luquidity = ether("15000000");
     const premint_treasury = ether("34200000");
 
-
+    
+    it("Only vesting contract can mint", async function(){
+      await expect(token.mint(owner.address, 10000)).to.be.revertedWith(`Only vesting contract can call this method`);
+    })
 
     it("Initial supply is correct", async function(){
-      expect(await vesting.balanceOf(teamPrivate.address)).to.eq(ether("7000000"));    
-      expect(await vesting.balanceOf(nftHolders.address)).to.eq(ether("11000000"));  
-      expect(await vesting.balanceOf(luquidity.address)).to.eq(ether("15000000"));  
-      expect(await vesting.balanceOf(treasury.address)).to.eq(ether("34200000")); 
+      expect(await token.balanceOf(teamPrivate.address)).to.eq(ether("7000000"));    
+      expect(await token.balanceOf(nftHolders.address)).to.eq(ether("11000000"));  
+      expect(await token.balanceOf(luquidity.address)).to.eq(ether("15000000"));  
+      expect(await token.balanceOf(treasury.address)).to.eq(ether("34200000")); 
     })
 
     it("Can not claim before end of cliff and vesting", async function(){
@@ -87,11 +95,11 @@ describe("Vesting", function () {
       await vesting.connect(luquidity).claim(5);
       await vesting.connect(treasury).claim(6);
       await vesting.connect(staking).claim(7);
-      expect(await vesting.balanceOf(marketing.address)).to.eq(ether("2333333"));    
-      expect(await vesting.balanceOf(nftHolders.address)).to.eq(ether("7333333") + premint_NFT);  
-      expect(await vesting.balanceOf(luquidity.address)).to.eq(ether("11250000") + premint_Luquidity);  
-      expect(await vesting.balanceOf(treasury.address)).to.eq(ether("4037500") + premint_treasury); 
-      expect(await vesting.balanceOf(staking.address)).to.eq(ether("6250000"));
+      expect(await token.balanceOf(marketing.address)).to.eq(ether("2333333"));    
+      expect(await token.balanceOf(nftHolders.address)).to.eq(ether("7333333") + premint_NFT);  
+      expect(await token.balanceOf(luquidity.address)).to.eq(ether("11250000") + premint_Luquidity);  
+      expect(await token.balanceOf(treasury.address)).to.eq(ether("4037500") + premint_treasury); 
+      expect(await token.balanceOf(staking.address)).to.eq(ether("6250000"));
     })
 
 
@@ -105,14 +113,14 @@ describe("Vesting", function () {
       await batchClaim(luquidity, 5, 0, 11); 
       await batchClaim(treasury, 6, 0, 47);
       await batchClaim(staking, 7, 0, 47);   
-      expect(await vesting.balanceOf(team.address)).to.eq(ether("96000000"));  
-      expect(await vesting.balanceOf(teamPrivate.address)).to.eq(ether("35000000")); 
-      expect(await vesting.balanceOf(advisors.address)).to.eq(ether("24000000"));
-      expect(await vesting.balanceOf(marketing.address)).to.eq(ether("112000000"));    
-      expect(await vesting.balanceOf(nftHolders.address)).to.eq(ether("55000000"));  
-      expect(await vesting.balanceOf(luquidity.address)).to.eq(ether("150000000"));  
-      expect(await vesting.balanceOf(treasury.address)).to.eq(ether("228000000")); 
-      expect(await vesting.balanceOf(staking.address)).to.eq(ether("300000000"));
+      expect(await token.balanceOf(team.address)).to.eq(ether("96000000"));  
+      expect(await token.balanceOf(teamPrivate.address)).to.eq(ether("35000000")); 
+      expect(await token.balanceOf(advisors.address)).to.eq(ether("24000000"));
+      expect(await token.balanceOf(marketing.address)).to.eq(ether("112000000"));    
+      expect(await token.balanceOf(nftHolders.address)).to.eq(ether("55000000"));  
+      expect(await token.balanceOf(luquidity.address)).to.eq(ether("150000000"));  
+      expect(await token.balanceOf(treasury.address)).to.eq(ether("228000000")); 
+      expect(await token.balanceOf(staking.address)).to.eq(ether("300000000"));
     })
 
     it("Can not claim more than limit", async function(){
